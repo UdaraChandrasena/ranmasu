@@ -1,0 +1,2176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ran Masu Tea - Management System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .active-tab {
+            background-color: #14532d !important;
+            color: #ffffff !important;
+            border-bottom: 3px solid #22c55e;
+        }
+        
+        /* Custom scrollbars */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #10b981;
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #059669;
+        }
+
+        /* Smooth Tab Fade-In */
+        .tab-content {
+            animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Floating Tea Leaves */
+        .falling-leaf {
+            position: absolute;
+            top: -20px;
+            color: rgba(52, 211, 153, 0.45);
+            pointer-events: none;
+            user-select: none;
+            animation: floatDown 8s linear infinite;
+        }
+
+        @keyframes floatDown {
+            0% {
+                transform: translateY(-10px) rotate(0deg) translateX(0px);
+                opacity: 0;
+            }
+            10% { opacity: 0.8; }
+            90% { opacity: 0.8; }
+            100% {
+                transform: translateY(110px) rotate(360deg) translateX(40px);
+                opacity: 0;
+            }
+        }
+
+        .card-hover {
+            transition: all 0.25s ease-in-out;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- TOP HEADER WITH ANIMATED DRIFTING TEA LEAVES -->
+    <header class="bg-brand-900 text-white shadow-md relative overflow-hidden">
+        <div class="falling-leaf text-xl" style="left: 5%; animation-duration: 7s; animation-delay: 0s;"><i class="fa-solid fa-leaf"></i></div>
+        <div class="falling-leaf text-lg" style="left: 20%; animation-duration: 9s; animation-delay: 2s;"><i class="fa-solid fa-leaf"></i></div>
+        <div class="falling-leaf text-2xl" style="left: 45%; animation-duration: 6s; animation-delay: 1s;"><i class="fa-solid fa-leaf"></i></div>
+        <div class="falling-leaf text-base" style="left: 65%; animation-duration: 8s; animation-delay: 3s;"><i class="fa-solid fa-leaf"></i></div>
+        <div class="falling-leaf text-xl" style="left: 85%; animation-duration: 10s; animation-delay: 1.5s;"><i class="fa-solid fa-leaf"></i></div>
+
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 relative z-10">
+            <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-emerald-500 rounded-xl text-brand-900 font-bold text-2xl shadow-lg transform hover:rotate-12 transition duration-300">
+                    <i class="fa-solid fa-leaf"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black tracking-wide flex items-center gap-2">RAN MASU TEA</h1>
+                    <p class="text-xs text-emerald-300 font-medium">Inventory & Profit/Loss Management System</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="exportData()" class="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-sm font-semibold transition duration-200 flex items-center gap-2 shadow">
+                    <i class="fa-solid fa-download"></i> Export Data
+                </button>
+                <button onclick="resetData()" class="px-3.5 py-1.5 bg-rose-800 hover:bg-rose-700 text-white rounded-lg text-sm font-semibold transition duration-200 flex items-center gap-2 shadow">
+                    <i class="fa-solid fa-rotate-left"></i> Reset System
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- NAVIGATION TABS -->
+    <nav class="bg-brand-800 text-emerald-100 shadow-inner">
+        <div class="max-w-7xl mx-auto px-4 flex overflow-x-auto text-sm font-medium">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-4 py-3 hover:bg-brand-900 whitespace-nowrap transition flex items-center gap-2 active-tab">
+                <i class="fa-solid fa-chart-pie"></i> Dashboard
+            </button>
+            <button onclick="switchTab('shops')" id="tab-shops" class="px-4 py-3 hover:bg-brand-900 whitespace-nowrap transition flex items-center gap-2">
+                <i class="fa-solid fa-store"></i> Issue Goods to Shops
+            </button>
+            <button onclick="switchTab('products')" id="tab-products" class="px-4 py-3 hover:bg-brand-900 whitespace-nowrap transition flex items-center gap-2">
+                <i class="fa-solid fa-box-archive"></i> Products Master
+            </button>
+            <button onclick="switchTab('purchases')" id="tab-purchases" class="px-4 py-3 hover:bg-brand-900 whitespace-nowrap transition flex items-center gap-2">
+                <i class="fa-solid fa-truck-ramp-box"></i> Tea Purchases
+            </button>
+            <button onclick="switchTab('production')" id="tab-production" class="px-4 py-3 hover:bg-brand-900 whitespace-nowrap transition flex items-center gap-2">
+                <i class="fa-solid fa-industry"></i> Pack Tea / Production Log
+            </button>
+            <button onclick="switchTab('sales')" id="tab-sales" class="px-4 py-3 hover:bg-brand-900 whitespace-nowrap transition flex items-center gap-2">
+                <i class="fa-solid fa-cash-register"></i> Sales Register
+            </button>
+            <button onclick="switchTab('expenses')" id="tab-expenses" class="px-4 py-3 hover:bg-brand-900 whitespace-nowrap transition flex items-center gap-2">
+                <i class="fa-solid fa-receipt"></i> Expenses
+            </button>
+            <button onclick="switchTab('stock')" id="tab-stock" class="px-4 py-3 hover:bg-brand-900 whitespace-nowrap transition flex items-center gap-2">
+                <i class="fa-solid fa-warehouse"></i> Stock Summary
+            </button>
+            <button onclick="switchTab('pnl')" id="tab-pnl" class="px-4 py-3 hover:bg-brand-900 whitespace-nowrap transition flex items-center gap-2">
+                <i class="fa-solid fa-file-invoice-dollar"></i> P&L Report
+            </button>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
+
+        <!-- ==================== TAB 1: DASHBOARD ==================== -->
+        <section id="content-dashboard" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm card-hover flex flex-col justify-between">
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Total Sales</span>
+                    <span class="text-2xl font-black text-gray-800 mt-2" id="db-total-sales">Rs. 0.00</span>
+                    <span class="text-xs text-emerald-600 mt-1 font-semibold"><i class="fa-solid fa-arrow-up"></i> Total Revenue</span>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm card-hover flex flex-col justify-between">
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Gross Profit</span>
+                    <span class="text-2xl font-black text-emerald-700 mt-2" id="db-gross-profit">Rs. 0.00</span>
+                    <span class="text-xs text-gray-500 mt-1">After COGS</span>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm card-hover flex flex-col justify-between">
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Operating Expenses</span>
+                    <span class="text-2xl font-black text-rose-600 mt-2" id="db-total-expenses">Rs. 0.00</span>
+                    <span class="text-xs text-gray-500 mt-1">Other Overheads</span>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm card-hover flex flex-col justify-between">
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Net Profit / Loss</span>
+                    <span class="text-2xl font-black text-blue-700 mt-2" id="db-net-profit">Rs. 0.00</span>
+                    <span class="text-xs text-gray-500 mt-1">Final Bottom Line</span>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm card-hover flex flex-col justify-between">
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Net Margin %</span>
+                    <span class="text-2xl font-black text-purple-700 mt-2" id="db-net-margin">0.0%</span>
+                    <span class="text-xs text-gray-500 mt-1">Profitability Ratio</span>
+                </div>
+            </div>
+
+            <!-- RAW TEA GRADES STOCK BALANCES -->
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3">
+                <h3 class="text-base font-bold text-brand-900 flex items-center gap-2">
+                    <i class="fa-solid fa-cubes-stacked text-emerald-600"></i> Raw Bulk Tea Stock Balances (By Grade)
+                </h3>
+                <div id="db-raw-tea-balances" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm card-hover">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-chart-line text-emerald-600"></i> Sales & Profit Trend</h3>
+                    <div class="h-64"><canvas id="chart-sales-profit"></canvas></div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm card-hover">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-600"></i> Sales by Package Size</h3>
+                    <div class="h-64"><canvas id="chart-package-breakdown"></canvas></div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="p-4 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 flex justify-between items-center">
+                    <span><i class="fa-solid fa-boxes-stacked text-emerald-600 mr-2"></i> Current Finished Packets Stock</span>
+                    <button onclick="switchTab('stock')" class="text-sm text-emerald-700 hover:underline">View Full Stock Summary &rarr;</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-600">
+                        <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
+                            <tr>
+                                <th class="p-3">SKU</th>
+                                <th class="p-3">Package</th>
+                                <th class="p-3">Packs Produced</th>
+                                <th class="p-3">Packs Sold/Issued</th>
+                                <th class="p-3">Closing Stock (Packs)</th>
+                                <th class="p-3">Bulk Tea Consumed</th>
+                            </tr>
+                        </thead>
+                        <tbody id="db-stock-tbody" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 2: ISSUE GOODS TO SHOPS ==================== -->
+        <section id="content-shops" class="hidden tab-content space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 border-b pb-3">
+                <div>
+                    <h2 class="text-2xl font-black text-emerald-900 flex items-center gap-2">
+                        <i class="fa-solid fa-truck-ramp-box text-emerald-600"></i> Issue Goods to Shops
+                    </h2>
+                    <p class="text-xs text-gray-500 font-medium">Wholesale dispatches and store delivery bills for retail partners and supermarkets</p>
+                </div>
+                <div class="bg-gray-100 border border-gray-300 px-3.5 py-1.5 rounded-lg text-xs font-bold text-gray-700" id="shops-top-date">
+                    10/10/2026
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-7 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-5">
+                    <h3 class="text-lg font-bold text-emerald-900 flex items-center gap-2 border-b pb-2">
+                        <i class="fa-solid fa-file-export text-emerald-600"></i> Issue Packets to Shop
+                    </h3>
+
+                    <form id="issue-shop-form" onsubmit="submitShopIssuance(event)" class="space-y-4">
+                        <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-200">
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1.5 flex items-center gap-1.5">
+                                <i class="fa-regular fa-calendar-check text-emerald-600"></i> Delivery Date & Time:
+                            </label>
+                            <input type="datetime-local" id="shop-delivery-datetime" required class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-xs font-bold text-gray-700 uppercase">Select Shop:</label>
+                                <button type="button" onclick="toggleAddShopModal(true)" class="text-xs text-emerald-700 hover:underline font-bold">+ Register New Shop</button>
+                            </div>
+                            <select id="shop-select" required class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-emerald-500">
+                                <option value="">-- Select a Shop --</option>
+                            </select>
+                        </div>
+
+                        <div class="max-h-[380px] overflow-y-auto custom-scroll pr-1">
+                            <div id="shop-packet-cards" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5"></div>
+                        </div>
+
+                        <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200 flex flex-wrap justify-between items-center text-sm font-semibold text-emerald-900 gap-2">
+                            <div>
+                                <span>Total Bill Amount: </span>
+                                <span id="shop-summary-bill" class="text-emerald-800 text-lg font-black">Rs. 0.00</span>
+                            </div>
+                            <div>
+                                <span>Total Packets Issued: </span>
+                                <span id="shop-summary-packs" class="text-emerald-800 text-lg font-black">0</span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-3 px-4 rounded-xl text-base shadow transition duration-200 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-receipt"></i> Confirm & Issue Goods (Generate Bill)
+                        </button>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-3">
+                        <div class="flex justify-between items-center border-b pb-2">
+                            <h3 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fa-solid fa-store text-emerald-600"></i> Partner Shops Master
+                            </h3>
+                            <button onclick="toggleAddShopModal(true)" class="px-2.5 py-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 text-xs font-bold rounded-lg transition">+ Add</button>
+                        </div>
+                        <div class="max-h-[160px] overflow-y-auto custom-scroll space-y-2" id="shops-list-container"></div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-3">
+                        <div class="flex justify-between items-center border-b pb-2">
+                            <h3 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fa-solid fa-clock-rotate-left text-emerald-600"></i> Issued Goods History
+                            </h3>
+                            <span class="text-xs font-bold text-gray-500" id="shop-history-count">0 Dispatches</span>
+                        </div>
+                        <div class="overflow-x-auto max-h-[300px] custom-scroll">
+                            <table class="w-full text-left text-xs text-gray-600">
+                                <thead class="bg-gray-100 text-gray-700 uppercase sticky top-0">
+                                    <tr>
+                                        <th class="p-2">Date</th>
+                                        <th class="p-2">Shop</th>
+                                        <th class="p-2">Items</th>
+                                        <th class="p-2">Bill (LKR)</th>
+                                        <th class="p-2 text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="shop-history-tbody" class="divide-y divide-gray-200"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 3: PRODUCTS MASTER ==================== -->
+        <section id="content-products" class="hidden tab-content space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm h-fit">
+                    <h3 class="text-lg font-bold text-brand-900 mb-4 flex items-center gap-2"><i class="fa-solid fa-square-plus text-emerald-600"></i> Add / Edit Tea SKU</h3>
+                    <form id="product-form" onsubmit="saveProduct(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">SKU Code *</label>
+                            <input type="text" id="prod-sku" required placeholder="e.g. RT-050" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Package Label *</label>
+                            <input type="text" id="prod-package" required placeholder="e.g. 50g Pouch" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Pack Weight (Grams) *</label>
+                            <input type="number" step="1" id="prod-weight" required placeholder="50" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Selling Price (LKR) *</label>
+                            <input type="number" step="0.01" id="prod-price" required placeholder="130.00" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Tea Cost / Kg (LKR) *</label>
+                            <input type="number" step="0.01" id="prod-teacost" required placeholder="1770.00" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Pkg Cost (LKR)</label>
+                                <input type="number" step="0.01" id="prod-pkgcost" placeholder="8.50" value="0" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Other Cost (LKR)</label>
+                                <input type="number" step="0.01" id="prod-othercost" placeholder="5.00" value="0" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                        </div>
+                        <div class="flex gap-2 pt-2">
+                            <button type="submit" class="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2 px-4 rounded-lg text-sm transition">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Product
+                            </button>
+                            <button type="button" onclick="clearProductForm()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-3 rounded-lg text-sm transition">Clear</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-2 bg-white p-5 rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-brand-900"><i class="fa-solid fa-list text-emerald-600"></i> Product Master List</h3>
+                        <span class="text-xs text-gray-500">Auto-calculated Costs & Margins</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-gray-600">
+                            <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
+                                <tr>
+                                    <th class="p-3">SKU / Label</th>
+                                    <th class="p-3">Weight</th>
+                                    <th class="p-3">Selling Price</th>
+                                    <th class="p-3">Cost / Pack</th>
+                                    <th class="p-3">Profit / Pack</th>
+                                    <th class="p-3">Margin %</th>
+                                    <th class="p-3 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="products-tbody" class="divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 4: TEA PURCHASES ==================== -->
+        <section id="content-purchases" class="hidden tab-content space-y-6">
+            <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-3">
+                <h3 class="text-base font-bold text-brand-900 flex items-center gap-2">
+                    <i class="fa-solid fa-scale-balanced text-emerald-600"></i> Available Raw Bulk Tea Balances (By Grade)
+                </h3>
+                <div id="purchases-raw-tea-balances" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm h-fit">
+                    <h3 class="text-lg font-bold text-brand-900 mb-4 flex items-center gap-2"><i class="fa-solid fa-truck-field text-emerald-600"></i> Record Bulk Tea Purchase</h3>
+                    <form id="stockin-form" onsubmit="saveStockIn(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Date *</label>
+                            <input type="date" id="stock-date" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Batch / Reference</label>
+                            <input type="text" id="stock-batch" placeholder="e.g. Batch #1" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Tea Type / Grade *</label>
+                            <input type="text" id="stock-grade" required placeholder="e.g. BOPF / FNG / OP" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Quantity (Kg) *</label>
+                            <input type="number" step="0.01" id="stock-qty" required placeholder="100.0" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Cost per Kg (LKR) *</label>
+                            <input type="number" step="0.01" id="stock-cost" required placeholder="1770.00" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Supplier</label>
+                            <input type="text" id="stock-supplier" placeholder="e.g. Watagoda Estate" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2 px-4 rounded-lg text-sm transition">
+                            <i class="fa-solid fa-plus"></i> Add Tea Purchase
+                        </button>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-2 bg-white p-5 rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <h3 class="text-lg font-bold text-brand-900 mb-4"><i class="fa-solid fa-clock-rotate-left text-emerald-600"></i> Bulk Tea Purchase Log</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-gray-600">
+                            <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
+                                <tr>
+                                    <th class="p-3">Date</th>
+                                    <th class="p-3">Batch/Ref</th>
+                                    <th class="p-3">Grade</th>
+                                    <th class="p-3">Qty (Kg)</th>
+                                    <th class="p-3">Cost/Kg</th>
+                                    <th class="p-3">Total Cost</th>
+                                    <th class="p-3">Supplier</th>
+                                    <th class="p-3 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stockin-tbody" class="divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 5: PACK TEA / PRODUCTION LOG ==================== -->
+        <section id="content-production" class="hidden tab-content space-y-6">
+            
+            <!-- STEP 1: TEA GRADE BLENDING CONFIG BY WEIGHT (KG) -->
+            <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <div>
+                        <h3 class="text-xl font-bold text-emerald-900 flex items-center gap-2">
+                            <i class="fa-solid fa-blender text-emerald-600"></i> Step 1: Configure Tea Grade Blend (Raw Weights Mix)
+                        </h3>
+                        <p class="text-xs text-gray-500 font-medium mt-0.5">Enter the exact kilograms mixed for each tea grade</p>
+                    </div>
+                    <button type="button" onclick="addBlendGradeRow()" class="px-3 py-1.5 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> Add Grade Component
+                    </button>
+                </div>
+
+                <div id="blend-grade-rows" class="space-y-3"></div>
+
+                <!-- Live Blend Calculation Footer -->
+                <div class="bg-gray-900 text-white p-4 rounded-xl flex flex-wrap justify-between items-center text-sm gap-2">
+                    <div>
+                        <span>Total Mixed Batch Weight: </span>
+                        <span id="blend-calc-total-weight" class="font-black text-emerald-400 text-lg">0.0 kg</span>
+                    </div>
+                    <div>
+                        <span>Weighted Blend Cost / Kg: </span>
+                        <span id="blend-calc-avg-cost" class="font-black text-emerald-300 text-lg">Rs. 0.00 / kg</span>
+                    </div>
+                    <div id="blend-status-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        Ready for packaging
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- STEP 2: PACK TEA BATCH FORM -->
+                <div class="lg:col-span-6 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                    <div class="flex items-center justify-between mb-4 border-b pb-3">
+                        <h3 class="text-xl font-bold text-emerald-900 flex items-center gap-2">
+                            <i class="fa-solid fa-boxes-packing text-emerald-600"></i> Step 2: Pack Tea (All Packet Sizes)
+                        </h3>
+                    </div>
+
+                    <form id="batch-packaging-form" onsubmit="submitBatchPackaging(event)" class="space-y-4">
+                        <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-200">
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1.5 flex items-center gap-1.5">
+                                <i class="fa-regular fa-calendar-check text-emerald-600"></i> Production Date & Time:
+                            </label>
+                            <input type="datetime-local" id="batch-datetime" required class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500">
+                        </div>
+
+                        <div class="max-h-[380px] overflow-y-auto custom-scroll pr-1">
+                            <div id="batch-packet-cards" class="grid grid-cols-1 md:grid-cols-2 gap-3.5"></div>
+                        </div>
+
+                        <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200 flex flex-wrap justify-between items-center text-sm font-semibold text-emerald-900 gap-2">
+                            <div>
+                                <span>Total Packets: </span>
+                                <span id="batch-summary-packs" class="text-emerald-700 text-lg font-black">0</span>
+                            </div>
+                            <div>
+                                <span>Bulk Blend Required: </span>
+                                <span id="batch-summary-tea" class="text-emerald-700 text-lg font-black">0.00 kg</span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-3 px-4 rounded-xl text-base shadow transition duration-200 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-circle-down"></i> Create Packets & Deduct Grade Balances
+                        </button>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-6 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-4 border-b pb-3">
+                            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fa-solid fa-list-check text-emerald-600"></i> Packaging History Log
+                            </h3>
+                            <span class="text-xs text-gray-500 font-medium">Batch Packaging Runs</span>
+                        </div>
+                        <div class="overflow-x-auto max-h-[500px] custom-scroll">
+                            <table class="w-full text-left text-sm text-gray-600">
+                                <thead class="bg-gray-100 text-xs text-gray-700 uppercase sticky top-0">
+                                    <tr>
+                                        <th class="p-3">Date & Time</th>
+                                        <th class="p-3">Package / SKU</th>
+                                        <th class="p-3">Packs Made</th>
+                                        <th class="p-3">Cost/Pack</th>
+                                        <th class="p-3">Tea Consumed</th>
+                                        <th class="p-3 text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="production-tbody" class="divide-y divide-gray-200"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 6: SALES REGISTER ==================== -->
+        <section id="content-sales" class="hidden tab-content space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-6 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                    <h3 class="text-lg font-bold text-brand-900 mb-4 flex items-center gap-2 border-b pb-3">
+                        <i class="fa-solid fa-cash-register text-emerald-600"></i> Record Sales Transaction (Single Invoice)
+                    </h3>
+                    
+                    <form id="multi-sale-form" onsubmit="submitMultiSaleInvoice(event)" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Date *</label>
+                                <input type="date" id="inv-date" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Invoice / Ref #</label>
+                                <input type="text" id="inv-num" placeholder="Inv #1" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Customer / Notes</label>
+                                <input type="text" id="inv-customer" placeholder="Retail / Name" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                        </div>
+
+                        <div class="border border-gray-200 rounded-xl overflow-hidden bg-gray-50/50 p-3 space-y-3">
+                            <div class="flex justify-between items-center text-xs font-bold text-gray-700 uppercase tracking-wide px-1">
+                                <span>Purchased Items</span>
+                                <span>SKU & Quantities</span>
+                            </div>
+
+                            <div id="invoice-items-container" class="space-y-2 max-h-[300px] overflow-y-auto custom-scroll pr-1"></div>
+
+                            <button type="button" onclick="addInvoiceRow()" class="w-full py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold rounded-lg text-xs transition flex items-center justify-center gap-1.5 border border-emerald-300">
+                                <i class="fa-solid fa-plus"></i> Add Another Tea Packet SKU
+                            </button>
+                        </div>
+
+                        <div class="bg-gray-900 text-white p-4 rounded-xl space-y-1.5 text-sm">
+                            <div class="flex justify-between text-gray-300">
+                                <span>Total Revenue:</span>
+                                <span id="inv-calc-revenue" class="font-bold text-emerald-400">Rs. 0.00</span>
+                            </div>
+                            <div class="border-t border-gray-700 pt-1.5 flex justify-between text-base font-bold text-white">
+                                <span>Expected Invoice Profit:</span>
+                                <span id="inv-calc-profit" class="text-emerald-300">Rs. 0.00</span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 px-4 rounded-xl text-sm transition flex items-center justify-center gap-2 shadow">
+                            <i class="fa-solid fa-check"></i> Complete & Record Invoice
+                        </button>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-6 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-4 border-b pb-3 gap-3">
+                            <h3 class="text-lg font-bold text-brand-900"><i class="fa-solid fa-receipt text-emerald-600"></i> Sales Transaction History</h3>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="printAllSalesBills()" class="px-2.5 py-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 text-xs font-bold rounded-lg transition flex items-center gap-1.5">
+                                    <i class="fa-solid fa-print"></i> Print All Bills
+                                </button>
+                                <span id="sales-count-badge" class="px-2.5 py-1 bg-gray-100 text-gray-700 font-bold rounded-full text-xs">0 Entries</span>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto max-h-[520px] custom-scroll">
+                            <table class="w-full text-left text-sm text-gray-600">
+                                <thead class="bg-gray-100 text-xs text-gray-700 uppercase sticky top-0">
+                                    <tr>
+                                        <th class="p-3">DATE</th>
+                                        <th class="p-3">INV #</th>
+                                        <th class="p-3">ITEMS BOUGHT</th>
+                                        <th class="p-3">REVENUE</th>
+                                        <th class="p-3">COGS</th>
+                                        <th class="p-3">PROFIT</th>
+                                        <th class="p-3 text-center">ACTION</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sales-tbody" class="divide-y divide-gray-200"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 7: EXPENSES ==================== -->
+        <section id="content-expenses" class="hidden tab-content space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm h-fit">
+                    <h3 class="text-lg font-bold text-brand-900 mb-4 flex items-center gap-2"><i class="fa-solid fa-file-circle-plus text-emerald-600"></i> Record Operating Expense</h3>
+                    <form id="expense-form" onsubmit="saveExpense(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Date *</label>
+                            <input type="date" id="exp-date" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Category *</label>
+                            <select id="exp-category" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                                <option value="Transport & Delivery">Transport & Delivery</option>
+                                <option value="Utilities & Electricity">Utilities & Electricity</option>
+                                <option value="Packaging Materials">Packaging Materials</option>
+                                <option value="Marketing & Promo">Marketing & Promo</option>
+                                <option value="Labor & Salary">Labor & Salary</option>
+                                <option value="Other Expenses">Other Expenses</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Description *</label>
+                            <input type="text" id="exp-desc" required placeholder="e.g. Electricity bill for packaging" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Amount (LKR) *</label>
+                            <input type="number" step="0.01" id="exp-amount" required placeholder="1500.00" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Payment Method</label>
+                            <select id="exp-method" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                                <option value="Cash">Cash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Cheque">Cheque</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2 px-4 rounded-lg text-sm transition">
+                            <i class="fa-solid fa-plus"></i> Save Expense
+                        </button>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-2 bg-white p-5 rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <h3 class="text-lg font-bold text-brand-900 mb-4"><i class="fa-solid fa-list-ol text-emerald-600"></i> Expenses Register</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-gray-600">
+                            <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
+                                <tr>
+                                    <th class="p-3">Date</th>
+                                    <th class="p-3">Category</th>
+                                    <th class="p-3">Description</th>
+                                    <th class="p-3">Amount</th>
+                                    <th class="p-3">Method</th>
+                                    <th class="p-3 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expenses-tbody" class="divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 8: STOCK SUMMARY ==================== -->
+        <section id="content-stock" class="hidden tab-content space-y-6">
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                <h3 class="text-lg font-bold text-brand-900 mb-4 flex items-center gap-2"><i class="fa-solid fa-boxes-stacked text-emerald-600"></i> Packaged Goods Inventory Reconciliation</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-600">
+                        <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
+                            <tr>
+                                <th class="p-3">SKU</th>
+                                <th class="p-3">Package Label</th>
+                                <th class="p-3">Opening Packs</th>
+                                <th class="p-3">Packs Produced</th>
+                                <th class="p-3">Packs Issued/Sold</th>
+                                <th class="p-3">Closing Stock (Packs)</th>
+                                <th class="p-3">Tea Consumed (Kg)</th>
+                                <th class="p-3">Stock Value (LKR)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stock-summary-tbody" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 9: P&L REPORT ==================== -->
+        <section id="content-pnl" class="hidden tab-content space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                    <h3 class="text-lg font-bold text-brand-900 border-b pb-2 flex items-center gap-2"><i class="fa-solid fa-calculator text-emerald-600"></i> Profit & Loss Statement</h3>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between py-2 border-b border-gray-100">
+                            <span class="font-semibold text-gray-700">Total Sales Revenue:</span>
+                            <span id="pnl-revenue" class="font-bold text-emerald-700">Rs. 0.00</span>
+                        </div>
+                        <div class="flex justify-between py-2 border-b border-gray-100">
+                            <span class="font-semibold text-gray-700">Cost of Goods Sold (COGS):</span>
+                            <span id="pnl-cogs" class="font-bold text-rose-600">Rs. 0.00</span>
+                        </div>
+                        <div class="flex justify-between py-2 border-b-2 border-gray-300 bg-emerald-50 p-2 rounded">
+                            <span class="font-bold text-emerald-900">Gross Profit:</span>
+                            <span id="pnl-gross" class="font-bold text-emerald-900">Rs. 0.00</span>
+                        </div>
+                        <div class="flex justify-between py-2 border-b border-gray-100">
+                            <span class="font-semibold text-gray-700">Operating Expenses:</span>
+                            <span id="pnl-expenses" class="font-bold text-rose-600">Rs. 0.00</span>
+                        </div>
+                        <div class="flex justify-between py-3 border-b-2 border-gray-800 bg-gray-900 text-white p-3 rounded-lg text-base">
+                            <span class="font-bold">Net Profit / (Loss):</span>
+                            <span id="pnl-net" class="font-bold text-emerald-400">Rs. 0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-brand-900 border-b pb-2 flex items-center gap-2"><i class="fa-solid fa-percent text-emerald-600"></i> Profitability Ratios</h3>
+                        <div class="grid grid-cols-2 gap-4 mt-4">
+                            <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200 text-center">
+                                <span class="text-xs text-gray-600 uppercase font-bold">Gross Margin</span>
+                                <div id="pnl-gross-margin" class="text-2xl font-black text-emerald-700 mt-1">0.0%</div>
+                            </div>
+                            <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 text-center">
+                                <span class="text-xs text-gray-600 uppercase font-bold">Net Margin</span>
+                                <div id="pnl-net-margin" class="text-2xl font-black text-blue-700 mt-1">0.0%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-gray-50 rounded-lg text-xs text-gray-500 space-y-1">
+                        <p><strong>Note:</strong> Revenue includes both retail POS customer sales and shop dispatches.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL: REGISTER NEW SHOP -->
+    <div id="add-shop-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden flex justify-center items-center p-4 z-50 transition-all duration-300">
+        <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fa-solid fa-store text-emerald-600"></i> Register New Partner Shop
+                </h3>
+                <button onclick="toggleAddShopModal(false)" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+            </div>
+            <form onsubmit="saveNewShop(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Shop Name *</label>
+                    <input type="text" id="modal-shop-name" required placeholder="e.g. Keells Super - Kandy" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Contact Person / Owner</label>
+                    <input type="text" id="modal-shop-contact" placeholder="e.g. Mr. Perera" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Phone Number</label>
+                    <input type="text" id="modal-shop-phone" placeholder="e.g. 077 123 4567" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Location / Address</label>
+                    <input type="text" id="modal-shop-location" placeholder="e.g. Colombo 03" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2.5 rounded-lg text-sm transition">Save Shop</button>
+                    <button type="button" onclick="toggleAddShopModal(false)" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2.5 px-4 rounded-lg text-sm transition">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-gray-200 py-4 text-center text-xs text-gray-500">
+        <div>Ran Masu Tea Management System • Local Storage Edition</div>
+        <div class="mt-1 text-[11px] text-emerald-700/80 font-medium tracking-wide">Software Created By Udara Chandrasena</div>
+    </footer>
+
+    <!-- JAVASCRIPT CODE -->
+    <script>
+        const defaultShops = [
+            { id: 1, name: "Cargills Food City", contact: "Manager", phone: "0112345678", location: "Colombo" },
+            { id: 2, name: "Keells Super", contact: "Purchasing Dept", phone: "0118765432", location: "Kandy" },
+            { id: 3, name: "Arpico Supercentre", contact: "Store Incharge", phone: "0119988776", location: "Galle" },
+            { id: 4, name: "Jayasinghe Stores", contact: "Mr. Jayasinghe", phone: "0771122334", location: "Kurunegala" }
+        ];
+
+        const defaultShopIssuances = [
+            {
+                id: 1,
+                datetime: "2026-10-10T08:36",
+                shopId: 1,
+                shopName: "Cargills Food City",
+                items: [
+                    { sku: "RT-050", qty: 20, price: 50 },
+                    { sku: "RT-100", qty: 15, price: 100 },
+                    { sku: "RT-200", qty: 10, price: 250 },
+                    { sku: "RT-500", qty: 5, price: 500 }
+                ],
+                totalBill: 7500
+            }
+        ];
+
+        const defaultProducts = [
+            { sku: "RT-050", package: "50g", pack_weight_g: 50, selling_price: 130, tea_cost_per_kg: 1770, packaging_cost: 8.5, other_cost: 5 },
+            { sku: "RT-100", package: "100g", pack_weight_g: 100, selling_price: 250, tea_cost_per_kg: 1770, packaging_cost: 12.5, other_cost: 5 },
+            { sku: "RT-200", package: "200g", pack_weight_g: 200, selling_price: 500, tea_cost_per_kg: 1770, packaging_cost: 18, other_cost: 5 },
+            { sku: "RT-500", package: "500g", pack_weight_g: 500, selling_price: 1250, tea_cost_per_kg: 1770, packaging_cost: 25, other_cost: 5 },
+            { sku: "RT-1KG", package: "1kg", pack_weight_g: 1000, selling_price: 2500, tea_cost_per_kg: 1770, packaging_cost: 32, other_cost: 5 }
+        ];
+
+        const defaultStockIn = [
+            { id: 1, date: "2026-09-09", batch_ref: "1", tea_grade: "BOPF", qty_kg: 116, cost_per_kg: 1770, supplier: "WATAGODA ESTATE" },
+            { id: 2, date: "2026-09-23", batch_ref: "1", tea_grade: "FNG", qty_kg: 58, cost_per_kg: 1550, supplier: "WATAGODA ESTATE" }
+        ];
+
+        const defaultProduction = [
+            { id: 1, datetime: "2026-09-27T08:00", sku: "RT-050", packs_produced: 125, cost_per_pack: 102, blendConfig: [{ grade: "BOPF", weightKg: 6.25 }] },
+            { id: 2, datetime: "2026-09-27T08:00", sku: "RT-100", packs_produced: 12, cost_per_pack: 194.5, blendConfig: [{ grade: "BOPF", weightKg: 1.2 }] },
+            { id: 3, datetime: "2026-09-27T08:00", sku: "RT-200", packs_produced: 24, cost_per_pack: 377, blendConfig: [{ grade: "BOPF", weightKg: 4.8 }] }
+        ];
+
+        const defaultSalesInvoices = [
+            { id: 1, date: "2026-09-28", invoice_no: "Inv #1", customer: "OPENING DAY", items: [{ sku: "RT-200", qty: 6, price: 500 }] },
+            { id: 2, date: "2026-09-29", invoice_no: "Inv #2", customer: "Nangi", items: [{ sku: "RT-200", qty: 1, price: 500 }] },
+            { id: 3, date: "2026-09-29", invoice_no: "Inv #3", customer: "Walk-in", items: [{ sku: "RT-100", qty: 1, price: 250 }] }
+        ];
+
+        const defaultExpenses = [];
+
+        // LOCALSTORAGE MANAGERS
+        let shops = JSON.parse(localStorage.getItem('rmt_shops')) || defaultShops;
+        let shopIssuances = JSON.parse(localStorage.getItem('rmt_shopIssuances')) || defaultShopIssuances;
+        let products = JSON.parse(localStorage.getItem('rmt_products')) || defaultProducts;
+        let stockIn = JSON.parse(localStorage.getItem('rmt_stockIn')) || defaultStockIn;
+        let production = JSON.parse(localStorage.getItem('rmt_production')) || defaultProduction;
+        let salesInvoices = JSON.parse(localStorage.getItem('rmt_salesInvoices')) || defaultSalesInvoices;
+        let expenses = JSON.parse(localStorage.getItem('rmt_expenses')) || defaultExpenses;
+
+        let salesChart = null;
+        let packageChart = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initDates();
+            renderAll();
+        });
+
+        function saveState() {
+            localStorage.setItem('rmt_shops', JSON.stringify(shops));
+            localStorage.setItem('rmt_shopIssuances', JSON.stringify(shopIssuances));
+            localStorage.setItem('rmt_products', JSON.stringify(products));
+            localStorage.setItem('rmt_stockIn', JSON.stringify(stockIn));
+            localStorage.setItem('rmt_production', JSON.stringify(production));
+            localStorage.setItem('rmt_salesInvoices', JSON.stringify(salesInvoices));
+            localStorage.setItem('rmt_expenses', JSON.stringify(expenses));
+            renderAll();
+        }
+
+        function initDates() {
+            const today = new Date().toISOString().split('T')[0];
+            const nowIso = new Date().toISOString().slice(0,16);
+
+            document.getElementById('stock-date').value = today;
+            document.getElementById('inv-date').value = today;
+            document.getElementById('exp-date').value = today;
+            document.getElementById('batch-datetime').value = nowIso;
+            document.getElementById('shop-delivery-datetime').value = nowIso;
+        }
+
+        function switchTab(tabId) {
+            const tabs = ['dashboard', 'shops', 'products', 'purchases', 'production', 'sales', 'expenses', 'stock', 'pnl'];
+            tabs.forEach(t => {
+                document.getElementById(`content-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).classList.remove('active-tab');
+            });
+
+            document.getElementById(`content-${tabId}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabId}`).classList.add('active-tab');
+
+            if (tabId === 'dashboard') {
+                updateCharts();
+            }
+        }
+
+        function renderAll() {
+            renderRawTeaBalances();
+            renderShopsPage();
+            renderProducts();
+            renderStockIn();
+            renderBlendRows();
+            renderBatchPackagingForm();
+            renderProductionLog();
+            renderSalesPOSRows();
+            renderSalesHistory();
+            renderExpenses();
+            renderStockSummary();
+            renderDashboardAndPnL();
+        }
+
+        // ==================== RAW TEA GRADE STOCK BALANCES ====================
+        function calculateRawTeaGradeBalances() {
+            const gradeStats = {};
+
+            // 1. Add Bulk Stock Purchases
+            stockIn.forEach(item => {
+                const grade = item.tea_grade.toUpperCase().trim();
+                if (!gradeStats[grade]) {
+                    gradeStats[grade] = { purchasedKg: 0, consumedKg: 0 };
+                }
+                gradeStats[grade].purchasedKg += item.qty_kg;
+            });
+
+            // 2. Subtract Consumption from Production Packaging Runs
+            production.forEach(pr => {
+                const prod = products.find(p => p.sku === pr.sku);
+                const packWeightG = prod ? prod.pack_weight_g : 0;
+                const totalRunTeaKg = (pr.packs_produced * packWeightG) / 1000;
+
+                if (pr.blendConfig && Array.isArray(pr.blendConfig)) {
+                    // Sum blend total weight
+                    const totalBlendConfigWeight = pr.blendConfig.reduce((s, b) => s + (b.weightKg || 0), 0);
+
+                    pr.blendConfig.forEach(b => {
+                        const grade = b.grade.toUpperCase().trim();
+                        if (!gradeStats[grade]) {
+                            gradeStats[grade] = { purchasedKg: 0, consumedKg: 0 };
+                        }
+                        
+                        let componentKg = 0;
+                        if (totalBlendConfigWeight > 0) {
+                            componentKg = totalRunTeaKg * (b.weightKg / totalBlendConfigWeight);
+                        } else {
+                            componentKg = totalRunTeaKg;
+                        }
+                        gradeStats[grade].consumedKg += componentKg;
+                    });
+                } else {
+                    if (!gradeStats["BOPF"]) gradeStats["BOPF"] = { purchasedKg: 0, consumedKg: 0 };
+                    gradeStats["BOPF"].consumedKg += totalRunTeaKg;
+                }
+            });
+
+            return gradeStats;
+        }
+
+        function renderRawTeaBalances() {
+            const stats = calculateRawTeaGradeBalances();
+            const dbContainer = document.getElementById('db-raw-tea-balances');
+            const purContainer = document.getElementById('purchases-raw-tea-balances');
+
+            dbContainer.innerHTML = '';
+            purContainer.innerHTML = '';
+
+            const grades = Object.keys(stats);
+            if (grades.length === 0) {
+                const emptyHtml = `<div class="col-span-4 text-xs text-gray-400">No bulk tea purchases recorded yet.</div>`;
+                dbContainer.innerHTML = emptyHtml;
+                purContainer.innerHTML = emptyHtml;
+                return;
+            }
+
+            grades.forEach(g => {
+                const data = stats[g];
+                const balanceKg = data.purchasedKg - data.consumedKg;
+                const isLow = balanceKg < 10;
+
+                const cardHtml = `
+                    <div class="p-3 bg-gray-50 rounded-xl border ${isLow ? 'border-rose-300 bg-rose-50/40' : 'border-emerald-200 bg-emerald-50/20'} flex flex-col justify-between">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-xs ${isLow ? 'text-rose-800' : 'text-emerald-900'}">${g}</span>
+                            <span class="text-[10px] text-gray-500 font-semibold">${data.purchasedKg.toFixed(1)} kg Purchased</span>
+                        </div>
+                        <div class="text-lg font-black ${isLow ? 'text-rose-700' : 'text-emerald-800'} mt-1">
+                            ${balanceKg.toFixed(2)} <span class="text-xs font-semibold">kg left</span>
+                        </div>
+                        <div class="text-[10px] text-gray-500 mt-0.5">
+                            Consumed: ${data.consumedKg.toFixed(2)} kg
+                        </div>
+                    </div>
+                `;
+
+                dbContainer.insertAdjacentHTML('beforeend', cardHtml);
+                purContainer.insertAdjacentHTML('beforeend', cardHtml);
+            });
+        }
+
+        // ==================== TEA GRADE BLENDING CONFIG BY WEIGHT (KG) ====================
+        let currentBlendRows = [
+            { grade: "BOPF", weightKg: 17 },
+            { grade: "FNG", weightKg: 3 }
+        ];
+
+        function renderBlendRows() {
+            const container = document.getElementById('blend-grade-rows');
+            container.innerHTML = '';
+
+            const stats = calculateRawTeaGradeBalances();
+            const availableGrades = Object.keys(stats);
+
+            currentBlendRows.forEach((row, idx) => {
+                let optionsHtml = availableGrades.map(g => `<option value="${g}" ${g === row.grade ? 'selected' : ''}>${g} (${(stats[g].purchasedKg - stats[g].consumedKg).toFixed(1)} kg available)</option>`).join('');
+                if (!optionsHtml) optionsHtml = `<option value="BOPF">BOPF</option><option value="FNG">FNG</option>`;
+
+                const div = document.createElement('div');
+                div.className = "grid grid-cols-12 gap-3 items-center bg-gray-50 p-3 rounded-xl border border-gray-200 text-xs";
+                div.innerHTML = `
+                    <div class="col-span-6 sm:col-span-5">
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Tea Grade</label>
+                        <select onchange="updateBlendRowGrade(${idx}, this.value)" class="w-full p-2 bg-white border border-gray-300 rounded-lg font-bold text-gray-800 focus:ring-2 focus:ring-emerald-500">
+                            ${optionsHtml}
+                        </select>
+                    </div>
+                    <div class="col-span-5 sm:col-span-5">
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Weight Mixed (Kg)</label>
+                        <input type="number" min="0" step="0.1" value="${row.weightKg}" oninput="updateBlendRowWeight(${idx}, this.value)" class="w-full p-2 bg-white border border-gray-300 rounded-lg font-black text-emerald-700 text-center focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div class="col-span-1 sm:col-span-2 flex justify-end pt-4">
+                        <button type="button" onclick="removeBlendGradeRow(${idx})" class="text-rose-500 hover:text-rose-700 text-sm p-1.5"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            calculateBlendSummary();
+        }
+
+        function addBlendGradeRow() {
+            const stats = calculateRawTeaGradeBalances();
+            const availableGrades = Object.keys(stats);
+            const nextGrade = availableGrades[currentBlendRows.length % availableGrades.length] || "BOPF";
+
+            currentBlendRows.push({ grade: nextGrade, weightKg: 0 });
+            renderBlendRows();
+        }
+
+        function removeBlendGradeRow(idx) {
+            if (currentBlendRows.length > 1) {
+                currentBlendRows.splice(idx, 1);
+                renderBlendRows();
+            } else {
+                alert("Blend recipe must have at least one grade component!");
+            }
+        }
+
+        function updateBlendRowGrade(idx, val) {
+            currentBlendRows[idx].grade = val.toUpperCase().trim();
+            calculateBlendSummary();
+        }
+
+        function updateBlendRowWeight(idx, val) {
+            currentBlendRows[idx].weightKg = parseFloat(val) || 0;
+            calculateBlendSummary();
+        }
+
+        function calculateBlendSummary() {
+            let totalWeightKg = 0;
+            let totalBatchCost = 0;
+
+            currentBlendRows.forEach(r => {
+                totalWeightKg += r.weightKg;
+
+                // Find grade cost per kg
+                const gradePurchases = stockIn.filter(s => s.tea_grade.toUpperCase().trim() === r.grade.toUpperCase().trim());
+                let gradeCost = 1770;
+                if (gradePurchases.length > 0) {
+                    const totalQty = gradePurchases.reduce((s, p) => s + p.qty_kg, 0);
+                    const totalCost = gradePurchases.reduce((s, p) => s + (p.qty_kg * p.cost_per_kg), 0);
+                    gradeCost = totalQty > 0 ? (totalCost / totalQty) : 1770;
+                }
+
+                totalBatchCost += (r.weightKg * gradeCost);
+            });
+
+            const weightedAvgCost = totalWeightKg > 0 ? (totalBatchCost / totalWeightKg) : 0;
+
+            document.getElementById('blend-calc-total-weight').textContent = `${totalWeightKg.toFixed(1)} kg`;
+            document.getElementById('blend-calc-avg-cost').textContent = `Rs. ${weightedAvgCost.toFixed(2)} / kg`;
+
+            const badge = document.getElementById('blend-status-badge');
+            if (totalWeightKg > 0) {
+                badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+                badge.textContent = `Batch Mix Configured (${totalWeightKg.toFixed(1)} kg total)`;
+            } else {
+                badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30";
+                badge.textContent = "Please enter component weights above";
+            }
+
+            return { totalWeightKg, weightedAvgCost };
+        }
+
+        // ==================== PACK TEA (ALL PACKET SIZES AT ONCE) ====================
+        const shopCardColorThemes = [
+            { border: "border-blue-200", title: "text-blue-600", bg: "bg-blue-50/30" },
+            { border: "border-emerald-200", title: "text-emerald-600", bg: "bg-emerald-50/30" },
+            { border: "border-amber-200", title: "text-amber-600", bg: "bg-amber-50/30" },
+            { border: "border-rose-200", title: "text-rose-600", bg: "bg-rose-50/30" },
+            { border: "border-emerald-800", title: "text-emerald-900", bg: "bg-emerald-100/30" }
+        ];
+
+        function renderBatchPackagingForm() {
+            const container = document.getElementById('batch-packet-cards');
+            container.innerHTML = '';
+
+            const blendInfo = calculateBlendSummary();
+
+            products.forEach((p, index) => {
+                const theme = shopCardColorThemes[index % shopCardColorThemes.length];
+                const calculatedUnitCost = (p.pack_weight_g / 1000 * blendInfo.weightedAvgCost) + p.packaging_cost + p.other_cost;
+
+                const card = document.createElement('div');
+                card.className = `p-3.5 rounded-xl border ${theme.border} ${theme.bg} space-y-2.5 card-hover`;
+                card.innerHTML = `
+                    <div class="font-bold text-sm ${theme.title} flex justify-between items-center">
+                        <span>${p.package} Packets</span>
+                        <span class="text-[10px] bg-white px-2 py-0.5 rounded border text-gray-500">${p.pack_weight_g}g</span>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Quantity to Make:</label>
+                        <input type="number" min="0" value="0" data-sku="${p.sku}" data-weight="${p.pack_weight_g}" 
+                            class="batch-qty-input w-full px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm font-bold text-gray-800 focus:ring-2 focus:ring-emerald-500" 
+                            oninput="calculateBatchSummary()">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Cost Price / Packet (Rs.):</label>
+                        <input type="number" step="0.01" value="${calculatedUnitCost.toFixed(2)}" data-sku="${p.sku}" 
+                            class="batch-cost-input w-full px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            calculateBatchSummary();
+        }
+
+        function calculateBatchSummary() {
+            let totalPacks = 0;
+            let totalTeaGrams = 0;
+
+            const qtyInputs = document.querySelectorAll('.batch-qty-input');
+            qtyInputs.forEach(input => {
+                const qty = parseInt(input.value) || 0;
+                const weight = parseFloat(input.dataset.weight) || 0;
+                totalPacks += qty;
+                totalTeaGrams += (qty * weight);
+            });
+
+            document.getElementById('batch-summary-packs').textContent = totalPacks;
+            document.getElementById('batch-summary-tea').textContent = `${(totalTeaGrams / 1000).toFixed(2)} kg`;
+        }
+
+        function submitBatchPackaging(e) {
+            e.preventDefault();
+
+            const blendInfo = calculateBlendSummary();
+            if (blendInfo.totalWeightKg <= 0) {
+                alert("Please enter component mix weights in Step 1 before creating packets!");
+                return;
+            }
+
+            const datetimeVal = document.getElementById('batch-datetime').value;
+            const qtyInputs = document.querySelectorAll('.batch-qty-input');
+            const costInputs = document.querySelectorAll('.batch-cost-input');
+
+            let addedCount = 0;
+
+            qtyInputs.forEach(input => {
+                const qty = parseInt(input.value) || 0;
+                if (qty > 0) {
+                    const sku = input.dataset.sku;
+                    const costInput = Array.from(costInputs).find(c => c.dataset.sku === sku);
+                    const cost = costInput ? parseFloat(costInput.value) || 0 : 0;
+
+                    production.push({
+                        id: Date.now() + Math.random(),
+                        datetime: datetimeVal,
+                        sku: sku,
+                        packs_produced: qty,
+                        cost_per_pack: cost,
+                        blendConfig: JSON.parse(JSON.stringify(currentBlendRows))
+                    });
+                    addedCount++;
+                }
+            });
+
+            if (addedCount === 0) {
+                alert("Please enter a quantity for at least one packet size!");
+                return;
+            }
+
+            saveState();
+            alert(`Successfully recorded packaging run across ${addedCount} packet size(s) and deducted raw bulk tea grade balances!`);
+        }
+
+        function renderProductionLog() {
+            const tbody = document.getElementById('production-tbody');
+            tbody.innerHTML = '';
+
+            const sortedLog = [...production].sort((a,b) => new Date(b.datetime) - new Date(a.datetime));
+
+            sortedLog.forEach((item) => {
+                const prod = products.find(p => p.sku === item.sku) || { package: item.sku, pack_weight_g: 0 };
+                const dtDisplay = item.datetime ? item.datetime.replace('T', ' ') : '-';
+                const totalTeaKg = ((prod.pack_weight_g * item.packs_produced) / 1000).toFixed(2);
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-3 text-xs font-semibold text-gray-700">${dtDisplay}</td>
+                    <td class="p-3 font-bold text-gray-800">${item.sku} <span class="text-xs text-emerald-700">(${prod.package})</span></td>
+                    <td class="p-3 font-black text-emerald-700">+${item.packs_produced}</td>
+                    <td class="p-3">Rs. ${(item.cost_per_pack || 0).toFixed(2)}</td>
+                    <td class="p-3 text-gray-600">${totalTeaKg} kg</td>
+                    <td class="p-3 text-center">
+                        <button onclick="deleteProduction(${item.id})" class="text-rose-600 hover:text-rose-800"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function deleteProduction(id) {
+            if (confirm("Delete this packaging record? Component grade stock balances will be restored.")) {
+                production = production.filter(p => p.id !== id);
+                saveState();
+            }
+        }
+
+        // ==================== SHOPS & GOODS ISSUANCE ====================
+        function renderShopsPage() {
+            const select = document.getElementById('shop-select');
+            select.innerHTML = '<option value="">-- Select a Shop --</option>';
+            shops.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = `${s.name} (${s.location || 'Retail Shop'})`;
+                select.appendChild(opt);
+            });
+
+            const cardsContainer = document.getElementById('shop-packet-cards');
+            cardsContainer.innerHTML = '';
+
+            products.forEach((p, index) => {
+                const theme = shopCardColorThemes[index % shopCardColorThemes.length];
+                const defaultWholesalePrice = p.selling_price;
+
+                const card = document.createElement('div');
+                card.className = `p-3.5 rounded-xl border ${theme.border} ${theme.bg} space-y-2.5 card-hover`;
+                card.innerHTML = `
+                    <div class="font-bold text-sm ${theme.title} flex justify-between items-center">
+                        <span>${p.package} Packets</span>
+                        <span class="text-[10px] bg-white px-2 py-0.5 rounded border text-gray-500">${p.pack_weight_g}g</span>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Quantity:</label>
+                        <input type="number" min="0" value="0" data-sku="${p.sku}" 
+                            class="shop-qty-input w-full px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm font-bold text-gray-800 focus:ring-2 focus:ring-emerald-500" 
+                            oninput="calculateShopSummary()">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Selling Price / Packet (Rs.):</label>
+                        <input type="number" step="0.01" value="${defaultWholesalePrice.toFixed(2)}" data-sku="${p.sku}" 
+                            class="shop-price-input w-full px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-emerald-500"
+                            oninput="calculateShopSummary()">
+                    </div>
+                `;
+                cardsContainer.appendChild(card);
+            });
+
+            calculateShopSummary();
+
+            const shopsList = document.getElementById('shops-list-container');
+            shopsList.innerHTML = '';
+            shops.forEach(s => {
+                const item = document.createElement('div');
+                item.className = "p-2.5 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 flex justify-between items-center text-xs transition";
+                item.innerHTML = `
+                    <div>
+                        <div class="font-bold text-gray-800">${s.name}</div>
+                        <div class="text-gray-500">${s.contact || 'No contact'} • ${s.phone || '-'}</div>
+                    </div>
+                    <button onclick="deleteShop(${s.id})" class="text-rose-500 hover:text-rose-700 p-1"><i class="fa-solid fa-trash"></i></button>
+                `;
+                shopsList.appendChild(item);
+            });
+
+            renderShopIssuanceHistory();
+        }
+
+        function calculateShopSummary() {
+            let totalBill = 0;
+            let totalPacks = 0;
+
+            const qtyInputs = document.querySelectorAll('.shop-qty-input');
+            const priceInputs = document.querySelectorAll('.shop-price-input');
+
+            qtyInputs.forEach(input => {
+                const qty = parseInt(input.value) || 0;
+                const sku = input.dataset.sku;
+                const priceInput = Array.from(priceInputs).find(p => p.dataset.sku === sku);
+                const price = priceInput ? parseFloat(priceInput.value) || 0 : 0;
+
+                totalPacks += qty;
+                totalBill += (qty * price);
+            });
+
+            document.getElementById('shop-summary-bill').textContent = `Rs. ${totalBill.toFixed(2)}`;
+            document.getElementById('shop-summary-packs').textContent = totalPacks;
+        }
+
+        function submitShopIssuance(e) {
+            e.preventDefault();
+            const shopId = document.getElementById('shop-select').value;
+            const datetime = document.getElementById('shop-delivery-datetime').value;
+
+            if (!shopId) {
+                alert("Please select a target shop!");
+                return;
+            }
+
+            const selectedShop = shops.find(s => s.id == shopId);
+            const qtyInputs = document.querySelectorAll('.shop-qty-input');
+            const priceInputs = document.querySelectorAll('.shop-price-input');
+
+            const items = [];
+            let totalBill = 0;
+
+            qtyInputs.forEach(input => {
+                const qty = parseInt(input.value) || 0;
+                if (qty > 0) {
+                    const sku = input.dataset.sku;
+                    const priceInput = Array.from(priceInputs).find(p => p.dataset.sku === sku);
+                    const price = priceInput ? parseFloat(priceInput.value) || 0 : 0;
+                    items.push({ sku, qty, price });
+                    totalBill += (qty * price);
+                }
+            });
+
+            if (items.length === 0) {
+                alert("Please enter a quantity for at least one tea packet size!");
+                return;
+            }
+
+            shopIssuances.push({
+                id: Date.now(),
+                datetime,
+                shopId: parseInt(shopId),
+                shopName: selectedShop ? selectedShop.name : "Shop",
+                items,
+                totalBill
+            });
+
+            saveState();
+            alert(`Issued ${items.length} packet SKU type(s) to ${selectedShop.name}. Bill value: Rs. ${totalBill.toFixed(2)}`);
+            document.getElementById('issue-shop-form').reset();
+            initDates();
+        }
+
+        function renderShopIssuanceHistory() {
+            const tbody = document.getElementById('shop-history-tbody');
+            tbody.innerHTML = '';
+
+            document.getElementById('shop-history-count').textContent = `${shopIssuances.length} Dispatches`;
+
+            const sortedLog = [...shopIssuances].sort((a,b) => new Date(b.datetime) - new Date(a.datetime));
+
+            sortedLog.forEach(log => {
+                const dtDisplay = log.datetime ? log.datetime.split('T')[0] : '-';
+                const itemsSummary = log.items.map(i => `${i.qty}x ${i.sku}`).join(', ');
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-2 text-gray-500">${dtDisplay}</td>
+                    <td class="p-2 font-bold text-gray-800">${log.shopName}</td>
+                    <td class="p-2 font-medium text-emerald-800">${itemsSummary}</td>
+                    <td class="p-2 font-black text-gray-800">Rs. ${log.totalBill.toFixed(2)}</td>
+                    <td class="p-2 text-center">
+                        <button onclick="deleteShopIssuance(${log.id})" class="text-rose-600 hover:text-rose-800"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function deleteShopIssuance(id) {
+            if (confirm("Delete this shop dispatch bill?")) {
+                shopIssuances = shopIssuances.filter(s => s.id !== id);
+                saveState();
+            }
+        }
+
+        function toggleAddShopModal(show) {
+            document.getElementById('add-shop-modal').classList.toggle('hidden', !show);
+        }
+
+        function saveNewShop(e) {
+            e.preventDefault();
+            const name = document.getElementById('modal-shop-name').value.trim();
+            const contact = document.getElementById('modal-shop-contact').value.trim();
+            const phone = document.getElementById('modal-shop-phone').value.trim();
+            const location = document.getElementById('modal-shop-location').value.trim();
+
+            const newShop = { id: Date.now(), name, contact, phone, location };
+            shops.push(newShop);
+            saveState();
+            toggleAddShopModal(false);
+            e.target.reset();
+        }
+
+        function deleteShop(id) {
+            if (confirm("Delete shop from master directory?")) {
+                shops = shops.filter(s => s.id !== id);
+                saveState();
+            }
+        }
+
+        // ==================== PRODUCTS MASTER ====================
+        function renderProducts() {
+            const tbody = document.getElementById('products-tbody');
+            tbody.innerHTML = '';
+
+            products.forEach((p) => {
+                const teaCostPack = (p.pack_weight_g / 1000) * p.tea_cost_per_kg;
+                const costPerPack = teaCostPack + p.packaging_cost + p.other_cost;
+                const profitPerPack = p.selling_price - costPerPack;
+                const margin = (profitPerPack / p.selling_price) * 100;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-gray-800">${p.sku} <span class="text-xs text-gray-500 font-normal">(${p.package})</span></td>
+                    <td class="p-3">${p.pack_weight_g} g</td>
+                    <td class="p-3 font-semibold">LKR ${p.selling_price.toFixed(2)}</td>
+                    <td class="p-3 text-rose-700 font-medium">LKR ${costPerPack.toFixed(2)}</td>
+                    <td class="p-3 text-emerald-700 font-bold">LKR ${profitPerPack.toFixed(2)}</td>
+                    <td class="p-3 font-bold text-gray-700">${margin.toFixed(1)}%</td>
+                    <td class="p-3 text-center space-x-2">
+                        <button onclick="editProduct('${p.sku}')" class="text-blue-600 hover:text-blue-800"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deleteProduct('${p.sku}')" class="text-rose-600 hover:text-rose-800"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function saveProduct(e) {
+            e.preventDefault();
+            const sku = document.getElementById('prod-sku').value.trim();
+            const pkg = document.getElementById('prod-package').value.trim();
+            const weight = parseFloat(document.getElementById('prod-weight').value);
+            const price = parseFloat(document.getElementById('prod-price').value);
+            const teaCost = parseFloat(document.getElementById('prod-teacost').value);
+            const pkgCost = parseFloat(document.getElementById('prod-pkgcost').value) || 0;
+            const otherCost = parseFloat(document.getElementById('prod-othercost').value) || 0;
+
+            const idx = products.findIndex(p => p.sku === sku);
+            const newProd = { sku, package: pkg, pack_weight_g: weight, selling_price: price, tea_cost_per_kg: teaCost, packaging_cost: pkgCost, other_cost: otherCost };
+
+            if (idx >= 0) {
+                products[idx] = newProd;
+            } else {
+                products.push(newProd);
+            }
+
+            saveState();
+            clearProductForm();
+        }
+
+        function editProduct(sku) {
+            const p = products.find(prod => prod.sku === sku);
+            if (!p) return;
+            document.getElementById('prod-sku').value = p.sku;
+            document.getElementById('prod-package').value = p.package;
+            document.getElementById('prod-weight').value = p.pack_weight_g;
+            document.getElementById('prod-price').value = p.selling_price;
+            document.getElementById('prod-teacost').value = p.tea_cost_per_kg;
+            document.getElementById('prod-pkgcost').value = p.packaging_cost;
+            document.getElementById('prod-othercost').value = p.other_cost;
+        }
+
+        function deleteProduct(sku) {
+            if (confirm(`Delete SKU ${sku}?`)) {
+                products = products.filter(p => p.sku !== sku);
+                saveState();
+            }
+        }
+
+        function clearProductForm() {
+            document.getElementById('product-form').reset();
+        }
+
+        // ==================== STOCK IN (TEA PURCHASES) ====================
+        function renderStockIn() {
+            const tbody = document.getElementById('stockin-tbody');
+            tbody.innerHTML = '';
+
+            stockIn.forEach((item) => {
+                const totalCost = item.qty_kg * item.cost_per_kg;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-3">${item.date}</td>
+                    <td class="p-3 font-semibold">${item.batch_ref || '-'}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold text-xs">${item.tea_grade}</span></td>
+                    <td class="p-3 font-bold text-gray-800">${item.qty_kg} kg</td>
+                    <td class="p-3">Rs. ${item.cost_per_kg.toFixed(2)}</td>
+                    <td class="p-3 font-bold text-emerald-800">Rs. ${totalCost.toFixed(2)}</td>
+                    <td class="p-3">${item.supplier || '-'}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="deleteStockIn(${item.id})" class="text-rose-600 hover:text-rose-800"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function saveStockIn(e) {
+            e.preventDefault();
+            const newItem = {
+                id: Date.now(),
+                date: document.getElementById('stock-date').value,
+                batch_ref: document.getElementById('stock-batch').value.trim(),
+                tea_grade: document.getElementById('stock-grade').value.trim().toUpperCase(),
+                qty_kg: parseFloat(document.getElementById('stock-qty').value),
+                cost_per_kg: parseFloat(document.getElementById('stock-cost').value),
+                supplier: document.getElementById('stock-supplier').value.trim()
+            };
+
+            stockIn.push(newItem);
+            saveState();
+            document.getElementById('stockin-form').reset();
+            initDates();
+        }
+
+        function deleteStockIn(id) {
+            if (confirm("Delete this tea purchase entry?")) {
+                stockIn = stockIn.filter(item => item.id !== id);
+                saveState();
+            }
+        }
+
+        // ==================== SALES REGISTER (MULTI-ITEM POS) ====================
+        function renderSalesPOSRows() {
+            const container = document.getElementById('invoice-items-container');
+            if (!container) return;
+
+            if (container.children.length === 0) {
+                addInvoiceRow();
+            }
+        }
+
+        function addInvoiceRow() {
+            const container = document.getElementById('invoice-items-container');
+            const rowId = Date.now() + Math.random();
+
+            let skuOptions = products.map(p => `<option value="${p.sku}" data-price="${p.selling_price}">${p.sku} (${p.package}) - Rs. ${p.selling_price}</option>`).join('');
+
+            const row = document.createElement('div');
+            row.className = "inv-item-row grid grid-cols-12 gap-2 items-center bg-white p-2 rounded-lg border border-gray-200 text-xs";
+            row.id = `row-${rowId}`;
+            row.innerHTML = `
+                <div class="col-span-6 sm:col-span-5">
+                    <select class="inv-sku-select w-full p-1.5 border rounded focus:ring-1 focus:ring-emerald-500 font-medium" onchange="updateRowPrice(this)">
+                        ${skuOptions}
+                    </select>
+                </div>
+                <div class="col-span-3 sm:col-span-3">
+                    <input type="number" min="1" value="1" class="inv-qty-input w-full p-1.5 border rounded text-center font-bold" oninput="recalcInvoiceTotals()">
+                </div>
+                <div class="col-span-3 sm:col-span-3 flex items-center gap-1">
+                    <input type="number" step="0.01" class="inv-price-input w-full p-1.5 border rounded text-right font-medium" oninput="recalcInvoiceTotals()">
+                    <button type="button" onclick="removeInvoiceRow('${rowId}')" class="text-rose-500 hover:text-rose-700 p-1"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `;
+            container.appendChild(row);
+
+            const select = row.querySelector('.inv-sku-select');
+            updateRowPrice(select);
+        }
+
+        function updateRowPrice(selectElem) {
+            const selectedOption = selectElem.options[selectElem.selectedIndex];
+            const price = parseFloat(selectedOption.dataset.price) || 0;
+            const row = selectElem.closest('.inv-item-row');
+            row.querySelector('.inv-price-input').value = price.toFixed(2);
+            recalcInvoiceTotals();
+        }
+
+        function removeInvoiceRow(rowId) {
+            const container = document.getElementById('invoice-items-container');
+            if (container.children.length > 1) {
+                const row = document.getElementById(`row-${rowId}`);
+                if (row) row.remove();
+                recalcInvoiceTotals();
+            } else {
+                alert("An invoice must have at least one line item!");
+            }
+        }
+
+        function recalcInvoiceTotals() {
+            let totalRevenue = 0;
+            let totalCOGS = 0;
+
+            const rows = document.querySelectorAll('.inv-item-row');
+            rows.forEach(row => {
+                const sku = row.querySelector('.inv-sku-select').value;
+                const qty = parseInt(row.querySelector('.inv-qty-input').value) || 0;
+                const price = parseFloat(row.querySelector('.inv-price-input').value) || 0;
+
+                const prod = products.find(p => p.sku === sku);
+                const teaCostPack = prod ? (prod.pack_weight_g / 1000) * prod.tea_cost_per_kg : 0;
+                const otherCostPack = prod ? (prod.packaging_cost + prod.other_cost) : 0;
+                const unitCOGS = teaCostPack + otherCostPack;
+
+                totalRevenue += (qty * price);
+                totalCOGS += (qty * unitCOGS);
+            });
+
+            const profit = totalRevenue - totalCOGS;
+
+            const revenueEl = document.getElementById('inv-calc-revenue');
+            const profitEl = document.getElementById('inv-calc-profit');
+
+            if (revenueEl) revenueEl.textContent = `Rs. ${totalRevenue.toFixed(2)}`;
+            if (profitEl) profitEl.textContent = `Rs. ${profit.toFixed(2)}`;
+        }
+
+        function submitMultiSaleInvoice(e) {
+            e.preventDefault();
+            const date = document.getElementById('inv-date').value;
+            const invoice_no = document.getElementById('inv-num').value.trim() || `Inv #${salesInvoices.length + 1}`;
+            const customer = document.getElementById('inv-customer').value.trim() || "Retail";
+
+            const rows = document.querySelectorAll('.inv-item-row');
+            const items = [];
+
+            rows.forEach(row => {
+                const sku = row.querySelector('.inv-sku-select').value;
+                const qty = parseInt(row.querySelector('.inv-qty-input').value) || 0;
+                const price = parseFloat(row.querySelector('.inv-price-input').value) || 0;
+
+                if (qty > 0) {
+                    items.push({ sku, qty, price });
+                }
+            });
+
+            if (items.length === 0) {
+                alert("Please add at least one item with quantity!");
+                return;
+            }
+
+            salesInvoices.push({
+                id: Date.now(),
+                date,
+                invoice_no,
+                customer,
+                items
+            });
+
+            saveState();
+
+            document.getElementById('invoice-items-container').innerHTML = '';
+            addInvoiceRow();
+            document.getElementById('inv-num').value = '';
+            document.getElementById('inv-customer').value = '';
+            initDates();
+        }
+
+        function getInvoiceSummary(inv) {
+            let invRevenue = 0;
+            let invCOGS = 0;
+            const itemsSummary = [];
+
+            inv.items.forEach(item => {
+                const prod = products.find(p => p.sku === item.sku);
+                const teaCostPack = prod ? (prod.pack_weight_g / 1000) * prod.tea_cost_per_kg : 0;
+                const otherCostPack = prod ? (prod.packaging_cost + prod.other_cost) : 0;
+                const unitCOGS = teaCostPack + otherCostPack;
+
+                invRevenue += (item.qty * item.price);
+                invCOGS += (item.qty * unitCOGS);
+                itemsSummary.push({
+                    sku: item.sku,
+                    qty: item.qty,
+                    unitPrice: item.price,
+                    lineTotal: item.qty * item.price,
+                    unitCogs: unitCOGS,
+                    packageLabel: prod ? prod.package : item.sku
+                });
+            });
+
+            return {
+                invRevenue,
+                invCOGS,
+                profit: invRevenue - invCOGS,
+                itemsSummary
+            };
+        }
+
+        function buildPrintableInvoiceHtml(inv) {
+            const summary = getInvoiceSummary(inv);
+            const rowsHtml = summary.itemsSummary.map(item => `
+                <tr>
+                    <td>${item.packageLabel}</td>
+                    <td>${item.sku}</td>
+                    <td>${item.qty}</td>
+                    <td>Rs. ${item.unitPrice.toFixed(2)}</td>
+                    <td>Rs. ${item.lineTotal.toFixed(2)}</td>
+                </tr>
+            `).join('');
+
+            return `
+                <div class="receipt-box">
+                    <div class="brand">RAN MASU TEA</div>
+                    <div class="subhead">Sales Invoice / Bill</div>
+                    <div class="meta-row">
+                        <span>Invoice: ${inv.invoice_no}</span>
+                        <span>${inv.date}</span>
+                    </div>
+                    <div class="meta-row">
+                        <span>Customer: ${inv.customer}</span>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Package</th>
+                                <th>SKU</th>
+                                <th>Qty</th>
+                                <th>Rate</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                    <div class="totals">
+                        <div class="net"><span>Total Selling Price</span><strong>Rs. ${summary.invRevenue.toFixed(2)}</strong></div>
+                    </div>
+                    <div class="footer-note">Thank you for your purchase.</div>
+                </div>
+            `;
+        }
+
+        function openPrintableBillWindow(content, title) {
+            const win = window.open('', '_blank', 'width=800,height=900');
+            if (!win) {
+                alert('Please allow pop-ups to print the bill.');
+                return;
+            }
+
+            win.document.write(`<!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>${title}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 24px; color: #1f2937; }
+                        .receipt-box { max-width: 700px; margin: 0 auto; background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; box-shadow: 0 8px 20px rgba(0,0,0,.05); }
+                        .brand { font-size: 28px; font-weight: 800; letter-spacing: 1px; text-align: center; color: #166534; }
+                        .subhead { text-align: center; color: #4b5563; margin-bottom: 18px; font-size: 16px; }
+                        .meta-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 12px; }
+                        th, td { border-bottom: 1px solid #e5e7eb; padding: 8px 6px; text-align: left; }
+                        th { background: #f3f4f6; }
+                        .totals { margin-top: 18px; border-top: 2px solid #111827; padding-top: 10px; }
+                        .totals div { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
+                        .totals .net { font-size: 16px; font-weight: 700; color: #166534; }
+                        .footer-note { margin-top: 18px; text-align: center; font-size: 12px; color: #6b7280; }
+                        @media print {
+                            body { background: white; padding: 0; }
+                            .receipt-box { box-shadow: none; border: none; border-radius: 0; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${content}
+                    <script>
+                        window.onload = function() { window.print(); setTimeout(() => window.close(), 500); };
+                    <\/script>
+                </body>
+                </html>
+            `);
+            win.document.close();
+        }
+
+        function printInvoiceBill(id) {
+            const inv = salesInvoices.find(item => item.id === id);
+            if (!inv) {
+                alert('Invoice not found.');
+                return;
+            }
+            openPrintableBillWindow(buildPrintableInvoiceHtml(inv), `Bill - ${inv.invoice_no}`);
+        }
+
+        function printAllSalesBills() {
+            if (!salesInvoices.length) {
+                alert('No sales invoices available to print.');
+                return;
+            }
+
+            const billsHtml = salesInvoices
+                .slice()
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .map(inv => buildPrintableInvoiceHtml(inv))
+                .join('<div style="page-break-after: always; height: 24px;"></div>');
+
+            openPrintableBillWindow(billsHtml, 'All Sales Bills');
+        }
+
+        function renderSalesHistory() {
+            const tbody = document.getElementById('sales-tbody');
+            tbody.innerHTML = '';
+
+            document.getElementById('sales-count-badge').textContent = `${salesInvoices.length} Invoices`;
+
+            const sortedInvoices = [...salesInvoices].sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            sortedInvoices.forEach(inv => {
+                const summary = getInvoiceSummary(inv);
+                const itemsSummary = summary.itemsSummary.map(item => `<span class="font-bold text-gray-800">${item.qty}x</span> ${item.sku}`);
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-3 text-xs">${inv.date}</td>
+                    <td class="p-3 font-bold text-emerald-800">${inv.invoice_no}</td>
+                    <td class="p-3 text-xs">${itemsSummary.join(', ')}</td>
+                    <td class="p-3 font-bold text-gray-800">Rs. ${summary.invRevenue.toFixed(2)}</td>
+                    <td class="p-3 text-rose-700">Rs. ${summary.invCOGS.toFixed(2)}</td>
+                    <td class="p-3 font-bold text-emerald-700">Rs. ${summary.profit.toFixed(2)}</td>
+                    <td class="p-3 text-center space-x-2">
+                        <button onclick="printInvoiceBill(${inv.id})" class="text-emerald-600 hover:text-emerald-800" title="Print Bill"><i class="fa-solid fa-print"></i></button>
+                        <button onclick="deleteInvoice(${inv.id})" class="text-rose-600 hover:text-rose-800" title="Delete Invoice"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function deleteInvoice(id) {
+            if (confirm("Delete this invoice sales record?")) {
+                salesInvoices = salesInvoices.filter(inv => inv.id !== id);
+                saveState();
+            }
+        }
+
+        // ==================== EXPENSES ====================
+        function renderExpenses() {
+            const tbody = document.getElementById('expenses-tbody');
+            tbody.innerHTML = '';
+
+            expenses.forEach((item) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-3">${item.date}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 bg-gray-100 rounded text-xs font-semibold">${item.category}</span></td>
+                    <td class="p-3 font-medium text-gray-800">${item.description}</td>
+                    <td class="p-3 font-bold text-rose-600">Rs. ${item.amount.toFixed(2)}</td>
+                    <td class="p-3 text-xs">${item.payment_method}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="deleteExpense(${item.id})" class="text-rose-600 hover:text-rose-800"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function saveExpense(e) {
+            e.preventDefault();
+            const newItem = {
+                id: Date.now(),
+                date: document.getElementById('exp-date').value,
+                category: document.getElementById('exp-category').value,
+                description: document.getElementById('exp-desc').value.trim(),
+                amount: parseFloat(document.getElementById('exp-amount').value),
+                payment_method: document.getElementById('exp-method').value
+            };
+
+            expenses.push(newItem);
+            saveState();
+            document.getElementById('expense-form').reset();
+            initDates();
+        }
+
+        function deleteExpense(id) {
+            if (confirm("Delete this expense record?")) {
+                expenses = expenses.filter(item => item.id !== id);
+                saveState();
+            }
+        }
+
+        // ==================== RECONCILIATION & CALCULATIONS ====================
+        function calculateStockMetrics() {
+            return products.map(p => {
+                const packsProduced = production
+                    .filter(pr => pr.sku === p.sku)
+                    .reduce((sum, pr) => sum + pr.packs_produced, 0);
+
+                let packsSold = 0;
+
+                salesInvoices.forEach(inv => {
+                    inv.items.forEach(item => {
+                        if (item.sku === p.sku) packsSold += item.qty;
+                    });
+                });
+
+                shopIssuances.forEach(dispatch => {
+                    dispatch.items.forEach(item => {
+                        if (item.sku === p.sku) packsSold += item.qty;
+                    });
+                });
+
+                const closingStock = packsProduced - packsSold;
+                const teaConsumedKg = (packsProduced * p.pack_weight_g) / 1000;
+                const teaCostPack = (p.pack_weight_g / 1000) * p.tea_cost_per_kg;
+                const unitCost = teaCostPack + p.packaging_cost + p.other_cost;
+                const stockValue = closingStock * unitCost;
+
+                return {
+                    sku: p.sku,
+                    package: p.package,
+                    opening: 0,
+                    produced: packsProduced,
+                    sold: packsSold,
+                    closing: closingStock,
+                    teaConsumedKg,
+                    stockValue
+                };
+            });
+        }
+
+        function renderStockSummary() {
+            const tbody = document.getElementById('stock-summary-tbody');
+            const dbTbody = document.getElementById('db-stock-tbody');
+            tbody.innerHTML = '';
+            dbTbody.innerHTML = '';
+
+            const stockData = calculateStockMetrics();
+
+            stockData.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-gray-800">${s.sku}</td>
+                    <td class="p-3">${s.package}</td>
+                    <td class="p-3 text-gray-500">${s.opening}</td>
+                    <td class="p-3 font-semibold text-emerald-700">+${s.produced}</td>
+                    <td class="p-3 font-semibold text-blue-700">-${s.sold}</td>
+                    <td class="p-3 font-black ${s.closing < 5 ? 'text-rose-600' : 'text-gray-800'}">${s.closing}</td>
+                    <td class="p-3 text-gray-600">${s.teaConsumedKg.toFixed(2)} kg</td>
+                    <td class="p-3 font-bold text-gray-700">Rs. ${s.stockValue.toFixed(2)}</td>
+                `;
+                tbody.appendChild(tr);
+
+                const trDb = document.createElement('tr');
+                trDb.innerHTML = `
+                    <td class="p-3 font-bold text-gray-800">${s.sku}</td>
+                    <td class="p-3">${s.package}</td>
+                    <td class="p-3 text-emerald-700 font-semibold">+${s.produced}</td>
+                    <td class="p-3 text-blue-700 font-semibold">-${s.sold}</td>
+                    <td class="p-3 font-black ${s.closing < 5 ? 'text-rose-600' : 'text-emerald-800'}">${s.closing}</td>
+                    <td class="p-3 text-gray-600">${s.teaConsumedKg.toFixed(2)} kg</td>
+                `;
+                dbTbody.appendChild(trDb);
+            });
+        }
+
+        function calculateFinancials() {
+            let totalSales = 0;
+            let totalCOGS = 0;
+
+            salesInvoices.forEach(inv => {
+                inv.items.forEach(item => {
+                    const prod = products.find(p => p.sku === item.sku);
+                    const teaCostPack = prod ? (prod.pack_weight_g / 1000) * prod.tea_cost_per_kg : 0;
+                    const otherCostPack = prod ? (prod.packaging_cost + prod.other_cost) : 0;
+                    const unitCOGS = teaCostPack + otherCostPack;
+
+                    totalSales += (item.qty * item.price);
+                    totalCOGS += (item.qty * unitCOGS);
+                });
+            });
+
+            shopIssuances.forEach(dispatch => {
+                dispatch.items.forEach(item => {
+                    const prod = products.find(p => p.sku === item.sku);
+                    const teaCostPack = prod ? (prod.pack_weight_g / 1000) * prod.tea_cost_per_kg : 0;
+                    const otherCostPack = prod ? (prod.packaging_cost + prod.other_cost) : 0;
+                    const unitCOGS = teaCostPack + otherCostPack;
+
+                    totalSales += (item.qty * item.price);
+                    totalCOGS += (item.qty * unitCOGS);
+                });
+            });
+
+            const grossProfit = totalSales - totalCOGS;
+            const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+            const netProfit = grossProfit - totalExpenses;
+
+            const grossMargin = totalSales > 0 ? (grossProfit / totalSales) * 100 : 0;
+            const netMargin = totalSales > 0 ? (netProfit / totalSales) * 100 : 0;
+
+            return { totalSales, totalCOGS, grossProfit, totalExpenses, netProfit, grossMargin, netMargin };
+        }
+
+        function renderDashboardAndPnL() {
+            const fin = calculateFinancials();
+
+            document.getElementById('db-total-sales').textContent = `Rs. ${fin.totalSales.toFixed(2)}`;
+            document.getElementById('db-gross-profit').textContent = `Rs. ${fin.grossProfit.toFixed(2)}`;
+            document.getElementById('db-total-expenses').textContent = `Rs. ${fin.totalExpenses.toFixed(2)}`;
+            document.getElementById('db-net-profit').textContent = `Rs. ${fin.netProfit.toFixed(2)}`;
+            document.getElementById('db-net-margin').textContent = `${fin.netMargin.toFixed(1)}%`;
+
+            document.getElementById('pnl-revenue').textContent = `Rs. ${fin.totalSales.toFixed(2)}`;
+            document.getElementById('pnl-cogs').textContent = `Rs. ${fin.totalCOGS.toFixed(2)}`;
+            document.getElementById('pnl-gross').textContent = `Rs. ${fin.grossProfit.toFixed(2)}`;
+            document.getElementById('pnl-expenses').textContent = `Rs. ${fin.totalExpenses.toFixed(2)}`;
+            document.getElementById('pnl-net').textContent = `Rs. ${fin.netProfit.toFixed(2)}`;
+            document.getElementById('pnl-gross-margin').textContent = `${fin.grossMargin.toFixed(1)}%`;
+            document.getElementById('pnl-net-margin').textContent = `${fin.netMargin.toFixed(1)}%`;
+        }
+
+        // ==================== CHARTS ====================
+        function updateCharts() {
+            const fin = calculateFinancials();
+
+            const ctx1 = document.getElementById('chart-sales-profit').getContext('2d');
+            if (salesChart) salesChart.destroy();
+            salesChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Revenue', 'COGS', 'Expenses', 'Net Profit'],
+                    datasets: [{
+                        label: 'LKR Amount',
+                        data: [fin.totalSales, fin.totalCOGS, fin.totalExpenses, fin.netProfit],
+                        backgroundColor: ['#10b981', '#f43f5e', '#f59e0b', '#3b82f6']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            const packageSales = {};
+
+            const addPkgSale = (items) => {
+                items.forEach(item => {
+                    const prod = products.find(p => p.sku === item.sku);
+                    const label = prod ? prod.package : item.sku;
+                    packageSales[label] = (packageSales[label] || 0) + (item.qty * item.price);
+                });
+            };
+
+            salesInvoices.forEach(inv => addPkgSale(inv.items));
+            shopIssuances.forEach(dispatch => addPkgSale(dispatch.items));
+
+            const ctx2 = document.getElementById('chart-package-breakdown').getContext('2d');
+            const packageLabels = Object.keys(packageSales);
+            const packagePalette = ['#10b981', '#eab308', '#f97316', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f43f5e', '#22c55e', '#6366f1'];
+            const packageColors = packageLabels.map((_, index) => packagePalette[index % packagePalette.length]);
+
+            if (packageChart) packageChart.destroy();
+            packageChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: packageLabels,
+                    datasets: [{
+                        data: Object.values(packageSales),
+                        backgroundColor: packageColors,
+                        borderColor: '#ffffff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                padding: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ==================== SYSTEM UTILITIES ====================
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
+                shops, shopIssuances, products, stockIn, production, salesInvoices, expenses
+            }, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `Ran_Masu_Tea_Data_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function resetData() {
+            if (confirm("Are you sure you want to reset all data back to original defaults?")) {
+                localStorage.clear();
+                shops = defaultShops;
+                shopIssuances = defaultShopIssuances;
+                products = defaultProducts;
+                stockIn = defaultStockIn;
+                production = defaultProduction;
+                salesInvoices = defaultSalesInvoices;
+                expenses = defaultExpenses;
+                saveState();
+            }
+        }
+    </script>
+</body>
+</html>
